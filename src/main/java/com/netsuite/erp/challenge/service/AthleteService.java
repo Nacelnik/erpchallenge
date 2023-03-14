@@ -34,7 +34,8 @@ public class AthleteService
     public String athlete(@PathVariable(name = "id") String stravaId)
     {
         Athlete athlete = athleteRepository.findByStravaId(stravaId);
-        return athlete.name() + "<br/> Assign to a tribe <br/>" + createTribeLinks(athlete.stravaId);
+        return athlete.name() + "<br/> Assign to a tribe <br/>" + createTribeLinks(athlete.stravaId)
+                + createInActivateLink(athlete);
     }
 
     @RequestMapping("/athlete/inactivate/{id}")
@@ -70,5 +71,13 @@ public class AthleteService
                 "<table><tr>" +
                         EnumSet.allOf(Tribes.class).stream().map(tribe -> "<td><a href='/athlete/" + stravaId + "/" + tribe + "'> " + tribe + "</a></td>").collect(Collectors.joining(""))
                 +"</tr></table>";
+    }
+
+    private String createInActivateLink(Athlete athlete)
+    {
+        return
+                athlete.active ?
+                        "<br/> <a href='/athlete/inactivate/" + athlete.stravaId + "'>Inactivate</a>" :
+                        "<br/> <a href='/athlete/activate/" + athlete.stravaId + "'>Activate</a>";
     }
 }
