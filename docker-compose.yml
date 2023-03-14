@@ -1,0 +1,14 @@
+version: "2.0"
+services:
+  erpchallenge-app:
+    image: erpchallenge:1.0
+    ports:
+      - 8080:8080 # Replace the port of your application here if used
+    depends_on:
+      - erpchallenge-db
+  erpchallenge-db:
+    image: mongo
+    volumes:
+      - ./database:/data
+    ports:
+      - "27017:27017"
