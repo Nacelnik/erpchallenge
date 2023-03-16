@@ -2,18 +2,16 @@ package com.netsuite.erp.challenge.utilities;
 
 public enum Tribes {
 
-               MANUFACTURING("Manufacturing"),
-                       PROJECTS("Projects"),
-                       P2P("Procure to Pay"),
-                       CASH_MANAGEMENT("Cash Management"),
-                       SUBSCRIPTIONS("Subscriptions"),
-                       FOUNDATIONS("Foundations"),
-                       ONE_WORLD("One World"),
-                       PLANNING_ALLOCATION("Planning & Allocation"),
-                       TAX("Tax"),
-                       O2C("Order to Cash"),
-                       GLA("GL Accounting"),
-                       INVENTORY("Inventory");
+    GL_ACCOUNTING("GL Accounting - Brno"),
+    TAX_BRNO("Tax - Brno"),
+    TAX_PRAGUE("Tax - Prague"),
+    O2C("Order to Cash - Brno"),
+    FOUNDATIONS_BRNO("Foundations - Brno"),
+    FOUNDATIONS_PRAGUE("Foundations - Prague"),
+    MANUFACTURING("Manufacturing - Brno"),
+    ONE_WORLD("OneWorld"),
+    PROJECTS("Projects - Brno"),
+    OTHER("Others");
 
     private final String name;
 

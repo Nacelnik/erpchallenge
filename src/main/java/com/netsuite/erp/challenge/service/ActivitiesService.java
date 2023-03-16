@@ -6,7 +6,9 @@ import com.netsuite.erp.challenge.dataobject.Activity;
 import com.netsuite.erp.challenge.dataobject.Athlete;
 import com.netsuite.erp.challenge.repository.ActivityRepository;
 import com.netsuite.erp.challenge.repository.AthleteRepository;
+import com.netsuite.erp.challenge.utilities.Filtering;
 import com.netsuite.erp.challenge.utilities.JsonBodyHandler;
+import com.netsuite.erp.challenge.utilities.Sorting;
 import com.netsuite.erp.challenge.utilities.UrlUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,9 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @RestController
 public class ActivitiesService
@@ -112,6 +112,9 @@ public class ActivitiesService
                 if (response.statusCode() == TOO_MANY_REQUESTS)
                     return "Requests limit reached, exiting.<br/>" + resultBuilder;
 
+                if (response.statusCode() != 200)
+                    continue;
+
                 ActivitiesResponse[] activitiesResponses = objectMapper.readValue(response.body(), ActivitiesResponse[].class);
 
                 for (ActivitiesResponse activityResponse : activitiesResponses) {
@@ -144,27 +147,68 @@ public class ActivitiesService
     @RequestMapping("/activities")
     public String listActivities()
     {
+        return createLeaderboard(null);
+    }
+
+    @RequestMapping("/activities/{month}")
+    public String listMonthlyActivities(@PathVariable Integer month)
+    {
+        return createLeaderboard(month);
+    }
+
+    private String createLeaderboard(Integer month) {
         StringBuilder result = new StringBuilder();
 
         result.append("<table>");
 
         List<Athlete> athletes = athleteRepository.findAll();
+
+        Map<String, BigDecimal> caloriesPerAthlete = new HashMap<>();
+        Map<String, Integer> activitiesPerAthlete = new HashMap<>();
+
         for (Athlete athlete : athletes)
         {
-            result.append("<tr>");
-            result.append("<td>");
-            result.append(athlete.firstName).append(" ").append(athlete.lastName);
-            result.append("</td><td>");
-            result.append(athlete.tribe);
-            result.append("</td><td>");
-            List<Activity> activities = activityRepository.findByAthleteId(athlete.id);
-            result.append(activities.size());
-            result.append("</td><td>");
-            result.append(activities.stream().map(a -> a.calories).reduce(BigDecimal.ZERO, BigDecimal::add));
-            result.append("</td></tr>");
+            List<Activity> athleteActivities = activityRepository.findByAthleteId(athlete.id);
+
+            if (month != null)
+                athleteActivities = Filtering.filterByMonth(athleteActivities, month);
+
+            BigDecimal calories = athleteActivities.stream().map(a -> a.calories).reduce(BigDecimal.ZERO, BigDecimal::add);
+            caloriesPerAthlete.put(athlete.stravaId, calories);
+            activitiesPerAthlete.put(athlete.stravaId, athleteActivities.size());
+        }
+
+        List<Map.Entry<String, BigDecimal>> sorted = Sorting.sortCalories(caloriesPerAthlete);
+
+        for (Map.Entry<String, BigDecimal> entry : sorted)
+        {
+            Athlete athlete = athleteRepository.findByStravaId(entry.getKey());
+            createResultForAthlete(result, athlete, activitiesPerAthlete.get(entry.getKey()), entry.getValue());
+        }
+
+        result.append("</table>");
+
+        result.append("<a href='/activities'></a>Overall leaderboard<br>");
+
+        for (int i = 3; i<=12; i++)
+        {
+            result.append(String.format("<a href='/activities/%d'>Month %d</a><br>", i, i));
         }
 
         return result.toString();
+    }
+
+    private void createResultForAthlete(StringBuilder result, Athlete athlete, Integer activitiesCount, BigDecimal calories) {
+        result.append("<tr>");
+        result.append("<td>");
+        result.append(athlete.name());
+        result.append("</td><td>");
+        result.append(athlete.tribe);
+        result.append("</td><td>");
+        result.append(activitiesCount);
+        result.append("</td><td>");
+        result.append(calories);
+        result.append("</td></tr>");
     }
 
     private void getAndSaveActivity(HttpClient client, Athlete athlete, String id) throws IOException, InterruptedException {

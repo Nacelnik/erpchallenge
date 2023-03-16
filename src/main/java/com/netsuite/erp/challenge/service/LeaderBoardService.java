@@ -4,15 +4,17 @@ import com.netsuite.erp.challenge.dataobject.Activity;
 import com.netsuite.erp.challenge.dataobject.Athlete;
 import com.netsuite.erp.challenge.repository.ActivityRepository;
 import com.netsuite.erp.challenge.repository.AthleteRepository;
+import com.netsuite.erp.challenge.utilities.Filtering;
+import com.netsuite.erp.challenge.utilities.Sorting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class LeaderBoardService
@@ -41,11 +43,13 @@ public class LeaderBoardService
 
         Map<Athlete, BigDecimal> caloriesPerAthlete = getCaloriesPerAthlete(month, athletes);
         Map<String, BigDecimal> caloriesPerTribe = getCaloriesPerTribe(caloriesPerAthlete);
-        List<Map.Entry<String, BigDecimal>> leaderboard = sortTribes(caloriesPerTribe);
+        List<Map.Entry<String, BigDecimal>> leaderboard = Sorting.sortCalories(caloriesPerTribe);
 
         StringBuilder result = new StringBuilder();
 
         createTable(leaderboard, result);
+
+        result.append("<a href='/leaderboard'></a>Overall leaderboard<br>");
 
         for (int i = 3; i<=12; i++)
         {
@@ -80,13 +84,6 @@ public class LeaderBoardService
         return caloriesPerTribe;
     }
 
-    private List<Map.Entry<String, BigDecimal>> sortTribes(Map<String, BigDecimal> caloriesPerTribe) {
-        List<Map.Entry<String, BigDecimal>> leaderboard = new ArrayList<>(caloriesPerTribe.entrySet());
-        leaderboard.sort(Map.Entry.comparingByValue());
-        Collections.reverse(leaderboard);
-        return leaderboard;
-    }
-
     private void createTable(List<Map.Entry<String, BigDecimal>> leaderboard, StringBuilder result) {
         result.append("<table>");
         leaderboard.forEach(
@@ -106,8 +103,7 @@ public class LeaderBoardService
 
         if (month != null)
         {
-             filtered = activities.stream()
-                    .filter(d -> d.startDate != null && LocalDate.parse(d.startDate, DateTimeFormatter.ISO_DATE).getMonth().getValue() == month).toList();
+             filtered = Filtering.filterByMonth(activities, month);
         }
 
         return filtered.stream().map(a -> a.calories).reduce(BigDecimal.ZERO, BigDecimal::add);

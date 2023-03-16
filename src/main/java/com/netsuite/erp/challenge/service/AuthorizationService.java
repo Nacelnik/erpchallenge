@@ -53,7 +53,7 @@ public class AuthorizationService {
             athlete.id = existingAthlete.id;
 
         athleteRepository.save(athlete);
-        return "Authorized " + athlete;
+        return "Authorized successfully " + athlete.name();
     }
 
     @RequestMapping("/adduser")
